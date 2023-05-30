@@ -17,7 +17,8 @@ const char* TSTR[] = {
     "LPAREN",
     "RPAREN",
     "INTLIT",
-    "REALLIT"
+    "REALLIT",
+    "COMMENT"
 };
 
 
@@ -90,6 +91,7 @@ Lexer::Lexer(std::istream &is) : _is(is)
 // advance the lexer to the next token
 LexerToken Lexer::next()
 {
+
     // get to a significant charcater
     skip();
 
@@ -106,6 +108,14 @@ LexerToken Lexer::next()
     } else if(lex_single()) {
         return current();
     } else if(lex_number()) {
+        return current();
+    }
+    else if(_cur == NEWLINE){
+        read();
+        return current();
+    }
+    else if(_cur=='\n'){
+        _curtok.token=NEWLINE;
         return current();
     } else {
         // nothing matched, consume and move on
@@ -155,7 +165,6 @@ void Lexer::consume(std::function<bool(char)> match)
     }
 }
 
-
 // skip irrelevant spaces and symbols
 void Lexer::skip()
 {
@@ -164,6 +173,13 @@ void Lexer::skip()
           (not _sigline and _cur =='\n') or
           isspace(_cur)) 
     {
+        if(_cur=='\n'){
+            _curtok.token=NEWLINE;
+            _curtok.lexeme="\\n";
+            _curtok.col+=1;
+            std::cout << _curtok << std::endl;
+        }
+
         read();
     }
 
@@ -182,9 +198,7 @@ bool Lexer::lex_single()
     // match our character
     switch(_cur) 
     {
-        case '\n':
-            _curtok.token = NEWLINE;
-            break;
+
 
         case '+':
             _curtok.token = PLUS;
