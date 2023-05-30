@@ -117,6 +117,19 @@ LexerToken Lexer::next()
     else if(_cur=='\n'){
         _curtok.token=NEWLINE;
         return current();
+
+    }
+
+    else if(lex_comment()){
+        _curtok.token=COMMENT;
+        _curtok.lexeme='#';
+        LexerToken currentToken= _curtok;
+        while(_is and _cur != '\0' and _cur !='\n' )
+        {
+            read();
+        }
+
+        return current();
     } else {
         // nothing matched, consume and move on
         consume();
@@ -165,6 +178,15 @@ void Lexer::consume(std::function<bool(char)> match)
     }
 }
 
+// skipping the comment lines
+bool Lexer::lex_comment()
+{
+	if(_cur=='#'){
+		_curtok.token=COMMENT;
+		return true;
+	}
+	return false;
+}
 // skip irrelevant spaces and symbols
 void Lexer::skip()
 {
@@ -173,7 +195,7 @@ void Lexer::skip()
           (not _sigline and _cur =='\n') or
           isspace(_cur)) 
     {
-        if(_cur=='\n'){
+        if(_cur=='\n' and _curtok.token!=COMMENT){
             _curtok.token=NEWLINE;
             _curtok.lexeme="\\n";
             _curtok.col+=1;
