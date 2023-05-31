@@ -17,8 +17,7 @@ const char* TSTR[] = {
     "LPAREN",
     "RPAREN",
     "INTLIT",
-    "REALLIT",
-    "COMMENT"
+    "REALLIT"
 };
 
 
@@ -80,6 +79,7 @@ Lexer::Lexer(std::istream &is) : _is(is)
     _line = 1;          // Humans start counting at 1
     _col = 0;           // We have not scanned a character yet
     _sigline = false;   // No significant characters found yet
+    _skip = 0;
 
     // start off with an invalid token
     _curtok.token = INVALID;
@@ -92,7 +92,9 @@ Lexer::Lexer(std::istream &is) : _is(is)
 LexerToken Lexer::next()
 {
 
+
     // get to a significant charcater
+
     skip();
 
     // mark the beginning of the current token (assume it is invalid)
@@ -102,33 +104,23 @@ LexerToken Lexer::next()
     _curtok.col = _col;
 
     // Try each class of token
-    if(not _is) {
+    
+        if (_cur == '\n') {
+            _curtok.token = NEWLINE;
+            _curtok.lexeme = "\\n";
+            _curtok.line = _line;
+            _curtok.col = _col;
+            _line++;
+            _col=0;
+        read();
+            return current();
+        }else if(not _is) {
         _curtok.token = TEOF;
         return current();
     } else if(lex_single()) {
+        _skip =  _curtok.line;
         return current();
     } else if(lex_number()) {
-        return current();
-    }
-    else if(_cur == NEWLINE){
-        read();
-        return current();
-    }
-    else if(_cur=='\n'){
-        _curtok.token=NEWLINE;
-        return current();
-
-    }
-
-    else if(lex_comment()){
-        _curtok.token=COMMENT;
-        _curtok.lexeme='#';
-        LexerToken currentToken= _curtok;
-        while(_is and _cur != '\0' and _cur !='\n' )
-        {
-            read();
-        }
-
         return current();
     } else {
         // nothing matched, consume and move on
@@ -150,15 +142,8 @@ void Lexer::read()
 {
     // get the character from the current stream
     _cur = _is.get();
-
-    // update line and column information 
-    if(_cur == '\n') {
-        _line++;
-        _col=0;
-        _sigline = false;
-    } else {
         _col++;
-    }
+    
 }
 
 
@@ -178,35 +163,36 @@ void Lexer::consume(std::function<bool(char)> match)
     }
 }
 
-// skipping the comment lines
-bool Lexer::lex_comment()
-{
-	if(_cur=='#'){
-		_curtok.token=COMMENT;
-		return true;
-	}
-	return false;
-}
+
 // skip irrelevant spaces and symbols
 void Lexer::skip()
 {
-    // read until the next significant character is found
-    while((_is and _cur == '\0') or
-          (not _sigline and _cur =='\n') or
-          isspace(_cur)) 
-    {
-        if(_cur=='\n' and _curtok.token!=COMMENT){
-            _curtok.token=NEWLINE;
-            _curtok.lexeme="\\n";
-            _curtok.col+=1;
-            std::cout << _curtok << std::endl;
+
+    while ((_is && _cur == '\0') || std::isspace(_cur) || _cur == '#') {
+
+        if (_cur == '#') {
+            while (_cur != '\n') {
+                read();
+            }
+            if (_cur == '\n' && _skip!=_line) {
+                _line++;
+                _col = 0;
+                read();
+            }else{
+                break;
+            }
+        } else if (_cur == '\n' && _col != 1) {
+            break;
+        } else if (_cur == '\n' && _col == 1) {
+             _line++;
+                _col = 0;
+                read();
+        }else {
+            read();
         }
-
-        read();
     }
-
-    // once we are here, we have a significant character
     _sigline = true;
+
 }
 
 
@@ -220,7 +206,9 @@ bool Lexer::lex_single()
     // match our character
     switch(_cur) 
     {
-
+        case '\n':
+            _curtok.token = NEWLINE;
+            break;
 
         case '+':
             _curtok.token = PLUS;

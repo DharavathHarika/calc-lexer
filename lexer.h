@@ -19,8 +19,7 @@ enum Token
     LPAREN,
     RPAREN,
     INTLIT,
-    REALLIT,
-    COMMENT
+    REALLIT
 };
 
 // translate tokens into strings for easy debugging
@@ -79,9 +78,6 @@ protected:
 
     // attempt to lex a number
     virtual bool lex_number();
-    
-    //attempt to skip the comment
-    virtual bool lex_comment();
 
 private:
     std::istream &_is;      // The stream we are lexing
@@ -89,8 +85,8 @@ private:
     char _cur;              // The current character
     int _line;              // The current line we are lexing
     int _col;               // The current column we are lexing
+    int _skip;              // skip to check comment newline
     bool _sigline;          // True if significant characters have been found
-    bool comment();
 };
 
 #endif
